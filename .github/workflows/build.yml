@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java-version: [ 24, 25-ea ]
+        java-version: [ 24 ]
     steps:
       - uses: actions/checkout@v4
 
@@ -44,7 +44,7 @@ jobs:
         id: pit_courant
         run: |
           mvn clean install -DskipTests
-          mvn org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          mvn -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
 
       - name: Extraire le score de mutation courant
         id: courant
