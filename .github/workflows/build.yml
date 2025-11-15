@@ -43,46 +43,43 @@ jobs:
         run: mvn -B clean test
 
       # PIT sur le commit courant
-      - name: Rouler le score de mutation sur le commit courant
+      - name: Rouler le score de mutation sur les tests courants
         id: pit_courant
         run: |
-          mvn -B org.pitest:pitest-maven:mutationCoverage
-
+          mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
           if [ -z "$FICHIER_RAPPORT" ]; then
-            echo "::error::Rapport PIT (summary.xml) introuvable pour le commit courant"
-            exit 1
+          echo "::error::PIT report pas trouvé pour le commit courant"
+          exit 1
           fi
-
-          BRUT=$(grep -o '<score>[0-9]\+' "$FICHIER_RAPPORT" | head -n 1 || true)
-          SCORE=${BRUT##*<score>}
+          
+          SCORE=$(sed -n 's:.*<score>\([0-9]\+\)</score>.*:\1:p' "$FICHIER_RAPPORT" | head -n 1)
           if [ -z "$SCORE" ]; then
-            echo "::error::Impossible de lire le score de mutation pour le commit courant"
-            cat "$FICHIER_RAPPORT" || true
-            exit 1
+          echo "::error:: On n'a pas pu analyser le score du commit courant"
+          cat "$FICHIER_RAPPORT" || true
+          exit 1
           fi
-
+          
           echo "Score de mutation courant: $SCORE"
-          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "score=$SCORE" >> "$GITHUB_OUTPUT"      
 
-      # PIT sur le commit précédent
-      - name: Rouler le score de mutation sur le commit précédent
+      - name: Rouler le score de mutation sur les tests précédents
         id: pit_precedent
         run: |
           git checkout HEAD^
 
-          mvn -B org.pitest:pitest-maven:mutationCoverage
+          mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
 
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
           if [ -z "$FICHIER_RAPPORT" ]; then
-            echo "::error::Rapport PIT (summary.xml) introuvable pour le commit précédent"
+            echo "::error::PIT report pas trouvé pour le commit précédent"
             exit 1
           fi
 
-          BRUT=$(grep -o '<score>[0-9]\+' "$FICHIER_RAPPORT" | head -n 1 || true)
-          SCORE=${BRUT##*<score>}
+          SCORE=$(sed -n 's:.*<score>\([0-9]\+\)</score>.*:\1:p' "$FICHIER_RAPPORT" | head -n 1)
           if [ -z "$SCORE" ]; then
-            echo "::error::Impossible de lire le score de mutation pour le commit précédent"
+            echo "::error::On n'a pas pu analyser le score du commit précédent"
             cat "$FICHIER_RAPPORT" || true
             exit 1
           fi
