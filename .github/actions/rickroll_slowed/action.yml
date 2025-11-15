@@ -1,0 +1,8 @@
+name: "Random Rickroll"
+runs:
+  using: "composite"
+  steps:
+    - name: Rickroll
+      run: |
+        echo "Never gonna give you up slowed reverb."
+        echo "https://www.youtube.com/watch?v=7tc4vVc8c50"

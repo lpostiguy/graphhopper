@@ -107,5 +107,9 @@ jobs:
             echo "::error::Le score de mutation a diminué ($COURANT < $PRECEDENT)."
             exit 1
           fi
-
+          
           echo "Le score de mutation est = ou >."
+          
+      - name: Rickroll on failure
+        if: failure()
+        uses: ./.github/actions/rickroll_slowed
