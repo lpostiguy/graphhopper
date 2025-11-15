@@ -46,6 +46,7 @@ jobs:
       - name: Rouler le score de mutation sur les tests courants
         id: pit_courant
         run: |
+          mvn -B clean install -DskipTests
           mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
           
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
@@ -68,7 +69,8 @@ jobs:
         id: pit_precedent
         run: |
           git checkout HEAD^
-
+          
+          mvn -B clean install -DskipTests
           mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
 
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
