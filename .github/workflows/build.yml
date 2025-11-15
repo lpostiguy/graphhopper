@@ -48,7 +48,7 @@ jobs:
         id: pit_courant
         run: |
           mvn -B install -DskipTests
-          mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          mvn -B org.pitest:pitest-maven:mutationCoverage -DargLine=""
           
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
           if [ -z "$FICHIER_RAPPORT" ]; then
@@ -72,7 +72,7 @@ jobs:
         run: |
           git checkout HEAD^
           mvn -B install -DskipTests
-          mvn -B -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          mvn -B org.pitest:pitest-maven:mutationCoverage -DargLine=""
 
           FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
           if [ -z "$FICHIER_RAPPORT" ]; then
