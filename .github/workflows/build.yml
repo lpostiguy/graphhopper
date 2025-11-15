@@ -9,6 +9,10 @@ jobs:
         java-version: [ 24, 25-ea ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a besoin d'avoir le commit courant et le commit précédent
+          fetch-depth: 2
+
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java-version }}
@@ -34,6 +38,75 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/pom.xml', '**/package.json') }}
           restore-keys: |
             ${{ runner.os}}-node_modules-
-      - name: Build ${{ matrix.java-version }}
+
+      - name: Build + test ${{ matrix.java-version }}
         run: mvn -B clean test
 
+      # PIT sur le commit courant
+      - name: Rouler le score de mutation sur le commit courant
+        id: pit_courant
+        run: |
+          mvn -B org.pitest:pitest-maven:mutationCoverage
+
+          FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
+          if [ -z "$FICHIER_RAPPORT" ]; then
+            echo "::error::Rapport PIT (summary.xml) introuvable pour le commit courant"
+            exit 1
+          fi
+
+          BRUT=$(grep -o '<score>[0-9]\+' "$FICHIER_RAPPORT" | head -n 1 || true)
+          SCORE=${BRUT##*<score>}
+          if [ -z "$SCORE" ]; then
+            echo "::error::Impossible de lire le score de mutation pour le commit courant"
+            cat "$FICHIER_RAPPORT" || true
+            exit 1
+          fi
+
+          echo "Score de mutation courant: $SCORE"
+          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+
+      # PIT sur le commit précédent
+      - name: Rouler le score de mutation sur le commit précédent
+        id: pit_precedent
+        run: |
+          git checkout HEAD^
+
+          mvn -B org.pitest:pitest-maven:mutationCoverage
+
+          FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
+          if [ -z "$FICHIER_RAPPORT" ]; then
+            echo "::error::Rapport PIT (summary.xml) introuvable pour le commit précédent"
+            exit 1
+          fi
+
+          BRUT=$(grep -o '<score>[0-9]\+' "$FICHIER_RAPPORT" | head -n 1 || true)
+          SCORE=${BRUT##*<score>}
+          if [ -z "$SCORE" ]; then
+            echo "::error::Impossible de lire le score de mutation pour le commit précédent"
+            cat "$FICHIER_RAPPORT" || true
+            exit 1
+          fi
+
+          echo "Score de mutation précédent: $SCORE"
+          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+
+      # Comparaison des scores
+      - name: Échec si le score de mutation a diminué
+        run: |
+          PRECEDENT=${{ steps.pit_precedent.outputs.score }}
+          COURANT=${{ steps.pit_courant.outputs.score }}
+
+          echo "Score de mutation précédent : $PRECEDENT"
+          echo "Score de mutation courant   : $COURANT"
+
+          if [ -z "$PRECEDENT" ] || [ -z "$COURANT" ]; then
+            echo "::error::Un des deux scores de mutation est vide."
+            exit 1
+          fi
+
+          if [ "$COURANT" -lt "$PRECEDENT" ]; then
+            echo "::error::Le score de mutation a diminué ($COURANT < $PRECEDENT)."
+            exit 1
+          fi
+
+          echo "Le score de mutation est = ou >."
