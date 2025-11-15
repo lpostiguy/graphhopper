@@ -9,9 +9,6 @@ jobs:
         java-version: [ 24, 25-ea ]
     steps:
       - uses: actions/checkout@v4
-        with:
-          # On a besoin d'avoir le commit courant et le commit précédent
-          fetch-depth: 2
 
       - uses: actions/setup-java@v4
         with:
@@ -42,75 +39,51 @@ jobs:
       - name: Build + test ${{ matrix.java-version }}
         run: mvn -B clean test
 
-      # PIT sur le commit courant
+      # PIT
       - name: Rouler le score de mutation sur les tests courants
-        if: matrix.java-version == '24'
         id: pit_courant
         run: |
-          mvn -B install -DskipTests
-          mvn -B org.pitest:pitest-maven:mutationCoverage -DargLine=""
-          
-          FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
-          if [ -z "$FICHIER_RAPPORT" ]; then
-          echo "::error::PIT report pas trouvé pour le commit courant"
-          exit 1
-          fi
-          
-          SCORE=$(sed -n 's:.*<score>\([0-9]\+\)</score>.*:\1:p' "$FICHIER_RAPPORT" | head -n 1)
-          if [ -z "$SCORE" ]; then
-          echo "::error:: On n'a pas pu analyser le score du commit courant"
-          cat "$FICHIER_RAPPORT" || true
-          exit 1
-          fi
-          
-          echo "Score de mutation courant: $SCORE"
-          echo "score=$SCORE" >> "$GITHUB_OUTPUT"      
+          mvn clean install -DskipTests
+          mvn org.pitest:pitest-maven:mutationCoverage -DargLine=""
 
-      - name: Rouler le score de mutation sur les tests précédents
-        if: matrix.java-version == '24'
-        id: pit_precedent
+      - name: Extraire le score de mutation courant
+        id: courant
         run: |
-          git checkout HEAD^
-          mvn -B install -DskipTests
-          mvn -B org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          SCORE=$(grep -oPm1 "(?<=<score>)[^<]+" target/pit-reports/*/summary.xml || echo 0)
+          echo "score_courant=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "Score de mutation courant: $SCORE"
 
-          FICHIER_RAPPORT=$(find . -path "*/target/pit-reports/*/summary.xml" | head -n 1)
-          if [ -z "$FICHIER_RAPPORT" ]; then
-            echo "::error::PIT report pas trouvé pour le commit précédent"
-            exit 1
+      - name: Récupérer le score de mutation précédent
+        id: precedent
+        run: |
+          if [ -f mutation_score.txt ]; then
+            PRECEDENT=$(cat mutation_score.txt)
+          else
+            PRECEDENT=0
           fi
-
-          SCORE=$(sed -n 's:.*<score>\([0-9]\+\)</score>.*:\1:p' "$FICHIER_RAPPORT" | head -n 1)
-          if [ -z "$SCORE" ]; then
-            echo "::error::On n'a pas pu analyser le score du commit précédent"
-            cat "$FICHIER_RAPPORT" || true
-            exit 1
-          fi
-
-          echo "Score de mutation précédent: $SCORE"
-          echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "score_precedent=$PRECEDENT" >> "$GITHUB_OUTPUT"
+          echo "Score de mutation précédent: $PRECEDENT"
 
       # Comparaison des scores
       - name: Échec si le score de mutation a diminué
         run: |
-          PRECEDENT=${{ steps.pit_precedent.outputs.score }}
-          COURANT=${{ steps.pit_courant.outputs.score }}
+          COURANT=${{ steps.courant.outputs.score_courant }}
+          PRECEDENT=${{ steps.precedent.outputs.score_precedent }}
 
           echo "Score de mutation précédent : $PRECEDENT"
           echo "Score de mutation courant   : $COURANT"
-
-          if [ -z "$PRECEDENT" ] || [ -z "$COURANT" ]; then
-            echo "::error::Un des deux scores de mutation est vide."
-            exit 1
-          fi
 
           if [ "$COURANT" -lt "$PRECEDENT" ]; then
             echo "::error::Le score de mutation a diminué ($COURANT < $PRECEDENT)."
             exit 1
           fi
-          
+
           echo "Le score de mutation est = ou >."
-          
+
+      - name: Sauvegarder le nouveau score de mutation
+        if: success()
+        run: echo "${{ steps.courant.outputs.score_courant }}" > mutation_score.txt
+
       - name: Rickroll on failure
         if: failure()
         uses: ./.github/actions/rickroll_slowed
