@@ -44,7 +44,7 @@ jobs:
         id: pit_courant
         run: |
           mvn clean install -DskipTests
-          mvn -pl core org.pitest:pitest-maven:mutationCoverage -DargLine=""
+          mvn -pl reader-gtfs org.pitest:pitest-maven:mutationCoverage
 
       - name: Extraire le score de mutation courant
         id: courant
