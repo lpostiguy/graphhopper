@@ -81,33 +81,33 @@ public class FreeWalkIT {
 
     @Test
     public void testWalkTransferBetweenFeeds() {
-//        Request ghRequest = new Request(
-//                Arrays.asList(
-//                        new GHStationLocation("JUSTICE_COURT"),
-//                        new GHStationLocation("DADAN")
-//                ),
-//                LocalDateTime.of(2007, 1, 1, 9, 0, 0).atZone(zoneId).toInstant()
-//        );
-//        ghRequest.setIgnoreTransfers(true);
-//        ghRequest.setWalkSpeedKmH(0.5); // Prevent walk solution
-//        GHResponse route = ptRouter.route(ghRequest);
-//
-//        assertFalse(route.hasErrors());
-//        assertEquals(1, route.getAll().size());
-//        ResponsePath transitSolution = route.getBest();
-//        Trip.PtLeg firstLeg = ((Trip.PtLeg) transitSolution.getLegs().get(0));
-//        Trip.WalkLeg transferLeg = ((Trip.WalkLeg) transitSolution.getLegs().get(1));
-//        Trip.PtLeg secondLeg = ((Trip.PtLeg) transitSolution.getLegs().get(2));
-//        assertEquals("JUSTICE_COURT,MUSEUM", firstLeg.stops.stream().map(s -> s.stop_id).collect(Collectors.joining(",")));
-//        assertEquals("EMSI,DADAN", secondLeg.stops.stream().map(s -> s.stop_id).collect(Collectors.joining(",")));
-//        assertEquals(LocalDateTime.parse("2007-01-01T10:00:00").atZone(zoneId).toInstant(), transferLeg.getDepartureTime().toInstant());
-//        assertEquals(LocalDateTime.parse("2007-01-01T10:08:06.670").atZone(zoneId).toInstant(), transferLeg.getArrivalTime().toInstant());
-//
-//        assertEquals(readWktLineString("LINESTRING (-116.76164 36.906093, -116.761812 36.905928, -116.76217 36.905659)"), transitSolution.getLegs().get(1).geometry);
-//
-//        assertEquals(4500000L, transitSolution.getTime());
-//        assertEquals(4500000.0, transitSolution.getRouteWeight());
-//        assertEquals(time(1, 15), transitSolution.getTime(), "Expected total travel time == scheduled travel time + wait time");
+        Request ghRequest = new Request(
+                Arrays.asList(
+                        new GHStationLocation("JUSTICE_COURT"),
+                        new GHStationLocation("DADAN")
+                ),
+                LocalDateTime.of(2007, 1, 1, 9, 0, 0).atZone(zoneId).toInstant()
+        );
+        ghRequest.setIgnoreTransfers(true);
+        ghRequest.setWalkSpeedKmH(0.5); // Prevent walk solution
+        GHResponse route = ptRouter.route(ghRequest);
+
+        assertFalse(route.hasErrors());
+        assertEquals(1, route.getAll().size());
+        ResponsePath transitSolution = route.getBest();
+        Trip.PtLeg firstLeg = ((Trip.PtLeg) transitSolution.getLegs().get(0));
+        Trip.WalkLeg transferLeg = ((Trip.WalkLeg) transitSolution.getLegs().get(1));
+        Trip.PtLeg secondLeg = ((Trip.PtLeg) transitSolution.getLegs().get(2));
+        assertEquals("JUSTICE_COURT,MUSEUM", firstLeg.stops.stream().map(s -> s.stop_id).collect(Collectors.joining(",")));
+        assertEquals("EMSI,DADAN", secondLeg.stops.stream().map(s -> s.stop_id).collect(Collectors.joining(",")));
+        assertEquals(LocalDateTime.parse("2007-01-01T10:00:00").atZone(zoneId).toInstant(), transferLeg.getDepartureTime().toInstant());
+        assertEquals(LocalDateTime.parse("2007-01-01T10:08:06.670").atZone(zoneId).toInstant(), transferLeg.getArrivalTime().toInstant());
+
+        assertEquals(readWktLineString("LINESTRING (-116.76164 36.906093, -116.761812 36.905928, -116.76217 36.905659)"), transitSolution.getLegs().get(1).geometry);
+
+        assertEquals(4500000L, transitSolution.getTime());
+        assertEquals(4500000.0, transitSolution.getRouteWeight());
+        assertEquals(time(1, 15), transitSolution.getTime(), "Expected total travel time == scheduled travel time + wait time");
     }
 
     @Test
